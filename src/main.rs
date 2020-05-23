@@ -1,33 +1,18 @@
-use std::env;
-use tokio::time::{self, Duration};
-use serenity::{
-    model::{
-        channel::Message,
-        gateway::Ready,
-    },
-    prelude::{
-        Context,
-        EventHandler,
-        Client
-    }
-};
+#![allow(dead_code)]
+mod client;
+mod command;
+mod framework;
 
+use crate::command::ping::PingServiceFactory;
+use client::discord::DiscordClient;
 
-struct Handler;
+use framework::Bot;
 
-impl EventHandler for Handler {
-    fn message(&self, ctx: Context, msg: Message) {
-        let content = msg.content;
-        let author = msg.author.name;
-        println!("{} > {}", content, author);
-    }
-}
-
+const PREFIX: &'static str = "g!";
 fn main() {
-    let token = env::var("DISCORD_TOKEN")
-        .expect("Make sure you set \"DISCORD_TOKEN\" environment variable.");
-    
-    let mut client = Client::new(&token, Handler).unwrap();
-    client.start().unwrap();
-}
+    let mut client = Bot::<DiscordClient>::new(PREFIX);
 
+    client.add_service::<PingServiceFactory>();
+
+    client.start();
+}
