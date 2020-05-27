@@ -1,8 +1,10 @@
 use super::{Client, LaunchArg, LaunchTiming, Message, Service, ServiceFactory, ServiceInfo};
 
-use crate::framework::ClientEvent;
+use crate::framework::{ClientEvent, StatefulServiceFactory};
 
 use std::{collections::HashMap, sync::mpsc, thread};
+
+use log::info;
 
 type ServiceStore<T> = HashMap<ServiceInfo, Box<dyn Fn(LaunchArg) -> Box<dyn Service<T>>>>;
 
@@ -10,7 +12,7 @@ pub struct Bot<T: Client> {
     client: T,
     prefix: &'static str,
     channel: mpsc::Receiver<ClientEvent<T>>,
-    services: ServiceStore<T>,
+    stateless_services: ServiceStore<T>,
 }
 
 impl<T: Client> Bot<T> {
@@ -20,7 +22,7 @@ impl<T: Client> Bot<T> {
             client: T::new(tx),
             prefix,
             channel: rx,
-            services: HashMap::new(),
+            stateless_services: HashMap::new(),
         }
     }
 
@@ -29,9 +31,16 @@ impl<T: Client> Bot<T> {
         F: ServiceFactory<T>,
     {
         let info = F::info();
-        let generator = |x| F::make(x);
+        let generator = |x: LaunchArg<'_>| F::make(x);
 
-        self.services.insert(info, Box::new(generator));
+        self.stateless_services.insert(info, Box::new(generator));
+    }
+
+    pub fn add_configured_service<F>(&mut self)
+    where
+        F: StatefulServiceFactory<T>,
+    {
+        unimplemented!()
     }
 
     pub fn start(self) {
@@ -43,16 +52,16 @@ impl<T: Client> Bot<T> {
         for event in channel {
             match event {
                 ClientEvent::OnReady(ctx) => {
-                    println!("Bot is ready!");
+                    info!("Bot is ready!");
                     context = Some(ctx);
                 }
 
                 ClientEvent::OnMessage(message) => {
-                    println!("{:?}", message);
+                    info!("ClientEvent::OnMessage fired: {:?}", message);
 
                     let ctx = context.as_ref().expect("Event was called before ready");
 
-                    Self::on_message(self.prefix, &self.services, message, ctx);
+                    Self::on_message(self.prefix, &self.stateless_services, message, ctx);
                 }
             }
         }
@@ -66,15 +75,14 @@ impl<T: Client> Bot<T> {
 
         let command_name = {
             if m.content.starts_with(prefix) {
-                Some(
-                    content
-                        .split(" ")
-                        .nth(0)
-                        .unwrap()
-                        .chars()
-                        .skip(prefix.len())
-                        .collect::<String>(),
-                )
+                let c = content
+                    .split(" ")
+                    .nth(0)
+                    .unwrap()
+                    .chars()
+                    .skip(prefix.len())
+                    .collect::<String>();
+                Some(c)
             } else {
                 None
             }
@@ -83,23 +91,28 @@ impl<T: Client> Bot<T> {
         store.iter().for_each(|(info, generator)| {
             info.initial_timings
                 .iter()
-                .filter(|timing| {
-                    use LaunchTiming::*;
-                    match timing {
-                        OnCommandCall(a) => {
-                            command_name.is_some() && command_name.as_ref().unwrap() == *a
-                        }
+                .filter(|timing| match timing {
+                    LaunchTiming::OnCommandCall(target_command_name) => {
+                        command_name.is_some()
+                            && command_name.as_ref().unwrap() == *target_command_name
+                    }
 
-                        OnMessageMatch(a) => content == *a,
+                    LaunchTiming::OnMessageMatch(target_message_content) => {
+                        content == *target_message_content
                     }
                 })
                 .map(|timing| match timing {
-                    LaunchTiming::OnCommandCall(_) => LaunchArg::OnCommandCall(m.clone()),
-                    LaunchTiming::OnMessageMatch(_) => LaunchArg::OnMessageMatch(m.clone()),
+                    LaunchTiming::OnCommandCall(command_name) => LaunchArg::OnCommandCall {
+                        command_name,
+                        message: m.clone(),
+                    },
+                    LaunchTiming::OnMessageMatch(matched_message) => LaunchArg::OnMessageMatch {
+                        matches_to: matched_message,
+                        message: m.clone(),
+                    },
                 })
                 .for_each(|arg| {
-                    let mut instance = generator(arg);
-                    instance
+                    generator(arg)
                         .launch(ctx)
                         .expect(&format!("Failed at launching {}", &info.name));
                 })

@@ -1,7 +1,7 @@
 mod invoke;
-mod service;
 mod service_info;
+mod traits;
 
 pub use invoke::Bot;
-pub use service::*;
 pub use service_info::*;
+pub use traits::*;

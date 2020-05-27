@@ -1,5 +1,5 @@
 use super::SerenityHandler;
-use crate::framework::{Channel, Client, ClientEvent, Context, Message};
+use crate::framework::{Channel, Client, ClientEvent, Context, Message, User};
 
 use serenity::http::Http;
 use serenity::model::channel::Message as SerenityMessage;
@@ -66,6 +66,7 @@ impl From<SerenityMessage> for Message {
             content: m.content,
             id: m.id.0,
             channel: Channel { id: m.channel_id.0 },
+            author: User { id: m.author.id.0 },
         }
     }
 }
