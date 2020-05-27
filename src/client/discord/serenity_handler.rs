@@ -1,5 +1,5 @@
 use crate::client::discord::{DiscordClient, DiscordContext};
-use crate::framework::{Channel, ClientEvent, Message};
+use crate::framework::{Channel, ClientEvent, Message, User};
 use serenity::client::EventHandler as SerenityEventHandler;
 use serenity::model::gateway::Ready;
 use serenity::{client::Context, model::channel::Message as SMessage};
@@ -15,10 +15,15 @@ impl SerenityEventHandler for SerenityHandler {
             id: msg.channel_id.0,
         };
 
+        let user = User {
+            id: msg.author.id.0,
+        };
+
         let message = Message {
             id: msg.id.0,
             content: msg.content,
             channel,
+            author: user,
         };
 
         let arg = ClientEvent::OnMessage(message);
