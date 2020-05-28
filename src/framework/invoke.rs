@@ -80,7 +80,7 @@ impl<T: Client> Bot<T> {
             }
         };
 
-        store.iter().for_each(|(info, generator)| {
+        for (info, generator) in store {
             info.initial_timings
                 .iter()
                 .filter(|timing| {
@@ -103,6 +103,6 @@ impl<T: Client> Bot<T> {
                         .launch(ctx)
                         .expect(&format!("Failed at launching {}", &info.name));
                 })
-        })
+        }
     }
 }
