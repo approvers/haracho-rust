@@ -1,5 +1,5 @@
 use crate::framework::{
-    Client, Context, LaunchArg, LaunchTiming, Service, ServiceFactory, ServiceInfo,
+    Client, Controller, LaunchArg, LaunchTiming, Service, ServiceFactory, ServiceInfo,
     ServiceInfoBuilder,
 };
 
@@ -16,7 +16,7 @@ impl<T: Client> ServiceFactory<T> for PingServiceFactory {
 
     fn make(t: LaunchArg) -> Box<dyn Service<T>> {
         let a = match t {
-            LaunchArg::OnCommandCall(message) => PingService {
+            LaunchArg::OnCommandCall { message, .. } => PingService {
                 channel: message.channel.id,
             },
 
@@ -32,7 +32,7 @@ pub struct PingService {
 }
 
 impl<T: Client> Service<T> for PingService {
-    fn launch(&mut self, t: &T::Context) -> Result<(), String> {
+    fn launch(&mut self, t: &T::Controller) -> Result<(), String> {
         t.send_message(self.channel, "pong!").map(|_| ())
     }
 }

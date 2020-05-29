@@ -1,4 +1,4 @@
-use crate::client::discord::{DiscordClient, DiscordContext};
+use crate::client::discord::{DiscordClient, DiscordController};
 use crate::framework::{Channel, ClientEvent, Message};
 use serenity::client::EventHandler as SerenityEventHandler;
 use serenity::model::gateway::Ready;
@@ -30,7 +30,7 @@ impl SerenityEventHandler for SerenityHandler {
         self.send_event_channel
             .lock()
             .unwrap()
-            .send(ClientEvent::OnReady(DiscordContext::new(Arc::clone(
+            .send(ClientEvent::OnReady(DiscordController::new(Arc::clone(
                 &ctx.http,
             ))))
             .unwrap();

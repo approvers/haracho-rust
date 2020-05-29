@@ -1,6 +1,7 @@
 use super::SerenityHandler;
-use crate::framework::{Channel, Client, ClientEvent, Context, Message};
+use crate::framework::{Channel, Client, ClientEvent, Controller, Message};
 
+use log::error;
 use serenity::http::Http;
 use serenity::model::channel::Message as SerenityMessage;
 use serenity::model::id::ChannelId;
@@ -16,11 +17,13 @@ pub struct DiscordClient {
 }
 
 impl Client for DiscordClient {
-    type Context = DiscordContext;
+    type Controller = DiscordController;
 
     fn new(channel: mpsc::Sender<ClientEvent<Self>>) -> Self {
-        let token = env::var("DISCORD_TOKEN")
-            .expect("Make sure you set \"DISCORD_TOKEN\" environment variable.");
+        let result = env::var("DISCORD_TOKEN");
+        if result.is_err() {
+            error!("Make sure you set DISCORD_TOKEN enviroment variable.");
+        }
 
         let handler = SerenityHandler {
             send_event_channel: Mutex::new(channel),
@@ -41,17 +44,17 @@ impl Debug for DiscordClient {
     }
 }
 
-pub struct DiscordContext {
+pub struct DiscordController {
     http: Arc<Http>,
 }
 
-impl DiscordContext {
+impl DiscordController {
     pub fn new(a: Arc<Http>) -> Self {
         Self { http: a }
     }
 }
 
-impl Context for DiscordContext {
+impl Controller for DiscordController {
     fn send_message(&self, channel_id: u64, content: &str) -> Result<Message, String> {
         ChannelId(channel_id)
             .say(&self.http, content)
