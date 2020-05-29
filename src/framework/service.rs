@@ -1,5 +1,4 @@
 use crate::framework::ServiceInfo;
-use readonly::*;
 use std::fmt::Debug;
 use std::sync::mpsc;
 
@@ -16,12 +15,18 @@ pub trait Controller {
     fn send_message(&self, channel_id: u64, content: &str) -> Result<Message, String>;
 }
 
+#[derive(Debug)]
+pub enum ClientError {
+    InitializeClientError(String),
+    StartingClientError(String),
+}
+
 pub trait Client: Sized + Debug + Send + 'static {
     type Controller: Controller;
 
-    fn new(_: mpsc::Sender<ClientEvent<Self>>) -> Self;
+    fn new(_: mpsc::Sender<ClientEvent<Self>>) -> Result<Self, ClientError>;
 
-    fn start(&mut self);
+    fn start(&mut self) -> Result<(), ClientError>;
 }
 
 #[derive(PartialEq, Eq, Hash, Debug)]

@@ -9,30 +9,28 @@ pub(super) struct SerenityHandler {
     pub send_event_channel: Mutex<Sender<ClientEvent<DiscordClient>>>,
 }
 
+impl SerenityHandler {
+    pub fn new(e: Mutex<Sender<ClientEvent<DiscordClient>>>) -> Self {
+        Self { send_event_channel: e }
+    }
+
+    fn send_event(&self, ev: ClientEvent<DiscordClient>) {
+        self.send_event_channel.lock().unwrap().send(ev).unwrap();
+    }
+}
+
 impl SerenityEventHandler for SerenityHandler {
     fn message(&self, _ctx: Context, msg: SMessage) {
-        let channel = Channel {
-            id: msg.channel_id.0,
-        };
+        let event = ClientEvent::OnMessage(msg.into());
 
-        let message = Message {
-            id: msg.id.0,
-            content: msg.content,
-            channel,
-        };
-
-        let arg = ClientEvent::OnMessage(message);
-
-        self.send_event_channel.lock().unwrap().send(arg).unwrap();
+        self.send_event(event)
     }
 
     fn ready(&self, ctx: Context, _: Ready) {
-        self.send_event_channel
-            .lock()
-            .unwrap()
-            .send(ClientEvent::OnReady(DiscordController::new(Arc::clone(
-                &ctx.http,
-            ))))
-            .unwrap();
+        let http = Arc::clone(&ctx.http);
+        let controller = DiscordController::new(http);
+        let event = ClientEvent::OnReady(controller);
+
+        self.send_event(event);
     }
 }

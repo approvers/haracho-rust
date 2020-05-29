@@ -19,7 +19,7 @@ impl<T: Client> Bot<T> {
     pub fn new(prefix: &'static str) -> Self {
         let (tx, rx) = mpsc::channel();
         Self {
-            client: T::new(tx),
+            client: T::new(tx).unwrap(),
             prefix,
             channel: rx,
             services: HashMap::new(),
@@ -72,6 +72,7 @@ impl<T: Client> Bot<T> {
                     .split(" ")
                     .nth(0)
                     .unwrap()
+                    .trim()
                     .chars()
                     .skip(prefix.len())
                     .collect::<String>();

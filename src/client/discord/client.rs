@@ -1,5 +1,5 @@
 use super::SerenityHandler;
-use crate::framework::{Channel, Client, ClientEvent, Controller, Message};
+use crate::framework::{Channel, Client, ClientError, ClientEvent, Controller, Message};
 
 use log::error;
 use serenity::http::Http;
@@ -11,6 +11,8 @@ use std::fmt::Debug;
 use std::fmt::Formatter;
 use std::sync::{mpsc, Arc, Mutex};
 
+const TOKEN_ERROR_TEXT: &str = "Make sure you set DISCORD_TOKEN environment variable.";
+
 pub struct DiscordClient {
     token: String,
     client: SerenityClient,
@@ -19,22 +21,22 @@ pub struct DiscordClient {
 impl Client for DiscordClient {
     type Controller = DiscordController;
 
-    fn new(channel: mpsc::Sender<ClientEvent<Self>>) -> Self {
-        let result = env::var("DISCORD_TOKEN");
-        if result.is_err() {
-            error!("Make sure you set DISCORD_TOKEN enviroment variable.");
-        }
+    fn new(channel: mpsc::Sender<ClientEvent<Self>>) -> Result<Self, ClientError> {
+        let token = env::var("DISCORD_TOKEN")
+            .map_err(|_| ClientError::InitializeClientError(TOKEN_ERROR_TEXT.into()))?;
 
-        let handler = SerenityHandler {
-            send_event_channel: Mutex::new(channel),
-        };
+        let handler = SerenityHandler::new(Mutex::new(channel));
 
-        let client = SerenityClient::new(&token, handler).unwrap();
-        Self { token, client }
+        let client = SerenityClient::new(&token, handler)
+            .map_err(|x| ClientError::InitializeClientError(x.to_string()))?;
+
+        Ok(Self { token, client })
     }
 
-    fn start(&mut self) {
-        self.client.start().unwrap();
+    fn start(&mut self) -> Result<(), ClientError> {
+        self.client
+            .start()
+            .map_err(|x| ClientError::StartingClientError(x.to_string()))
     }
 }
 
