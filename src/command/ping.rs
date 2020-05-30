@@ -1,28 +1,24 @@
-use crate::framework::{
-    Client, Controller, LaunchArg, LaunchTiming, Service, ServiceFactory, ServiceInfo,
-    ServiceInfoBuilder,
-};
+use crate::framework::launch_arg::{OnCommandCall, OnMessageMatch};
+use crate::framework::launch_type::{LaunchOnCommandCall, LaunchOnMessageMatch};
+use crate::framework::service::{Client, Controller, Service, ServiceFactory};
+use crate::framework::service_info::{ServiceInfo, ServiceInfoBuilder};
 
 pub struct PingServiceFactory;
 
 impl<T: Client> ServiceFactory<T> for PingServiceFactory {
-    fn info() -> ServiceInfo {
-        ServiceInfoBuilder::new()
+    fn info() -> ServiceInfo<T> {
+        ServiceInfoBuilder::<T>::new()
             .name("PingService")
             .description("!ping コマンドに反応して pong と返します。Botのテスト用です。")
-            .timing(LaunchTiming::OnCommandCall("ping"))
+            .timing(LaunchOnCommandCall("ping".into()))
+            .callback(|arg: OnCommandCall| PingService {
+                channel: arg.message.channel.id,
+            })
+            .timing(LaunchOnMessageMatch("g!ping".into()))
+            .callback(|arg: OnMessageMatch| PingService {
+                channel: arg.message.channel.id,
+            })
             .build()
-    }
-
-    fn make(t: LaunchArg) -> Box<dyn Service<T>> {
-        let a = match t {
-            LaunchArg::OnCommandCall { message, .. } => PingService {
-                channel: message.channel.id,
-            },
-
-            _ => unreachable!(),
-        };
-        Box::new(a)
     }
 }
 

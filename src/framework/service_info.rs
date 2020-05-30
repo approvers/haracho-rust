@@ -1,24 +1,35 @@
-use super::LaunchTiming;
+use crate::framework::launch_arg::LaunchArg;
+use crate::framework::launch_type::LaunchType;
+use crate::framework::service::{Client, LaunchTiming, Service};
 use log::info;
 
-#[derive(Hash, PartialEq, Eq)]
-pub struct ServiceInfo {
+pub struct ServiceInfo<TClient: Client> {
     pub name: String,
     pub description: String,
-    pub initial_timings: Vec<LaunchTiming>,
+    pub initial_timings: Vec<LaunchTiming<TClient>>,
 
     pub args_description: Option<Vec<String>>,
 }
 
-pub struct ServiceInfoBuilder<'a> {
+pub struct ServiceInfoBuilder<'a, TClient: Client> {
     name: Option<&'a str>,
     description: Option<&'a str>,
-    initial_timings: Vec<LaunchTiming>,
+    initial_timings: Vec<LaunchTiming<TClient>>,
 
     args_descriptions: Option<&'a [&'a str]>,
 }
 
-impl<'instance> ServiceInfoBuilder<'instance> {
+pub struct PartiallyTimedServiceInfoBuilder<
+    'a,
+    TClient: Client,
+    TLaunchArg: LaunchArg,
+    TLaunchType: LaunchType<TClient, Arg = TLaunchArg>,
+> {
+    origin: ServiceInfoBuilder<'a, TClient>,
+    timing: TLaunchType,
+}
+
+impl<'instance, TClient: Client> ServiceInfoBuilder<'instance, TClient> {
     pub fn new() -> Self {
         ServiceInfoBuilder {
             name: None,
@@ -44,12 +55,17 @@ impl<'instance> ServiceInfoBuilder<'instance> {
         self
     }
 
-    pub fn timing(mut self, new_timing: LaunchTiming) -> Self {
-        self.initial_timings.push(new_timing);
-        self
+    pub fn timing<TLaunchType: LaunchType<TClient>>(
+        self,
+        timing: TLaunchType,
+    ) -> PartiallyTimedServiceInfoBuilder<'instance, TClient, TLaunchType::Arg, TLaunchType> {
+        PartiallyTimedServiceInfoBuilder {
+            origin: self,
+            timing,
+        }
     }
 
-    pub fn build(self) -> ServiceInfo {
+    pub fn build(self) -> ServiceInfo<TClient> {
         if self.name.is_none() {
             panic!("Building service info failed: name is empty.");
         }
@@ -74,13 +90,13 @@ impl<'instance> ServiceInfoBuilder<'instance> {
 
         let args_desc = {
             if self.args_descriptions.is_some() {
-                Some(
-                    self.args_descriptions
-                        .unwrap()
-                        .iter()
-                        .map(|x| String::from(*x))
-                        .collect(),
-                )
+                let args = self
+                    .args_descriptions
+                    .unwrap()
+                    .iter()
+                    .map(|x| String::from(*x))
+                    .collect();
+                Some(args)
             } else {
                 None
             }
@@ -93,5 +109,29 @@ impl<'instance> ServiceInfoBuilder<'instance> {
 
             args_description: args_desc,
         }
+    }
+}
+
+impl<
+        'a,
+        TClient: Client,
+        TLaunchArg: LaunchArg,
+        TLaunchType: LaunchType<TClient, Arg = TLaunchArg>,
+    > PartiallyTimedServiceInfoBuilder<'a, TClient, TLaunchArg, TLaunchType>
+{
+    pub fn callback<TCallback, TService>(
+        mut self,
+        callback: TCallback,
+    ) -> ServiceInfoBuilder<'a, TClient>
+    where
+        TService: Service<TClient> + 'static,
+        TCallback: Fn(TLaunchArg) -> TService + 'static,
+    {
+        let boxed_callback = move |arg| Box::new(callback(arg)) as Box<dyn Service<TClient>>;
+
+        let timing = self.timing.build(boxed_callback);
+        self.origin.initial_timings.push(timing);
+
+        self.origin
     }
 }

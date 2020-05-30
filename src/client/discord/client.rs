@@ -1,7 +1,6 @@
 use super::SerenityHandler;
-use crate::framework::{Channel, Client, ClientError, ClientEvent, Controller, Message};
 
-use log::error;
+use crate::framework::service::{Channel, Client, ClientError, ClientEvent, Controller, Message};
 use serenity::http::Http;
 use serenity::model::channel::Message as SerenityMessage;
 use serenity::model::id::ChannelId;

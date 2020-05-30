@@ -1,5 +1,5 @@
 use crate::client::discord::{DiscordClient, DiscordController};
-use crate::framework::{Channel, ClientEvent, Message};
+use crate::framework::service::ClientEvent;
 use serenity::client::EventHandler as SerenityEventHandler;
 use serenity::model::gateway::Ready;
 use serenity::{client::Context, model::channel::Message as SMessage};
@@ -11,7 +11,9 @@ pub(super) struct SerenityHandler {
 
 impl SerenityHandler {
     pub fn new(e: Mutex<Sender<ClientEvent<DiscordClient>>>) -> Self {
-        Self { send_event_channel: e }
+        Self {
+            send_event_channel: e,
+        }
     }
 
     fn send_event(&self, ev: ClientEvent<DiscordClient>) {

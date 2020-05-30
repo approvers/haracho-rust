@@ -1,4 +1,5 @@
-use crate::framework::ServiceInfo;
+use crate::framework::launch_arg::{OnCommandCall, OnMessageMatch};
+use crate::framework::service_info::ServiceInfo;
 use std::fmt::Debug;
 use std::sync::mpsc;
 
@@ -7,8 +8,7 @@ pub trait Service<T: Client>: Debug {
 }
 
 pub trait ServiceFactory<T: Client> {
-    fn info() -> ServiceInfo;
-    fn make(_: LaunchArg) -> Box<dyn Service<T>>;
+    fn info() -> ServiceInfo<T>;
 }
 
 pub trait Controller {
@@ -29,21 +29,14 @@ pub trait Client: Sized + Debug + Send + 'static {
     fn start(&mut self) -> Result<(), ClientError>;
 }
 
-#[derive(PartialEq, Eq, Hash, Debug)]
-pub enum LaunchTiming {
-    OnMessageMatch(&'static str),
-    OnCommandCall(&'static str),
-}
-
-#[derive(PartialEq, Eq, Hash, Debug)]
-pub enum LaunchArg<'a> {
+pub enum LaunchTiming<T: Client> {
     OnMessageMatch {
-        matches_to: &'a str,
-        message: Message,
+        target_content: String,
+        generator: Box<dyn Fn(OnMessageMatch) -> Box<dyn Service<T>>>,
     },
     OnCommandCall {
-        command_name: &'a str,
-        message: Message,
+        command_name: String,
+        generator: Box<dyn Fn(OnCommandCall) -> Box<dyn Service<T>>>,
     },
 }
 

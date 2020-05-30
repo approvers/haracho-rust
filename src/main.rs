@@ -6,7 +6,7 @@ mod framework;
 use crate::command::ping::PingServiceFactory;
 use client::discord::DiscordClient;
 
-use framework::Bot;
+use crate::framework::bot::Bot;
 
 const PREFIX: &'static str = "g!";
 fn main() {
