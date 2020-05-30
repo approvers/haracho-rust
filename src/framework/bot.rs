@@ -1,5 +1,6 @@
-use crate::framework::service::{Client, ClientEvent, LaunchTiming, Message, ServiceFactory};
+use crate::framework::service::{Client, ClientEvent, LaunchTiming, ServiceFactory};
 use crate::framework::service_info::ServiceInfo;
+use crate::framework::TextMessage;
 use std::{sync::mpsc, thread};
 
 type ServiceStore<T> = Vec<ServiceInfo<T>>;
@@ -53,14 +54,19 @@ impl<T: Client> Bot<T> {
         }
     }
 
-    fn on_message(prefix: &str, store: &ServiceStore<T>, m: Message, controller: &T::Controller) {
-        let content = m.content.trim();
+    fn on_message(
+        prefix: &str,
+        store: &ServiceStore<T>,
+        m: T::TextMessage,
+        controller: &T::Controller,
+    ) {
+        let content = m.content().trim();
         if content.is_empty() {
             return;
         }
 
         let parsed_command_name = {
-            if m.content.starts_with(prefix) {
+            if content.starts_with(prefix) {
                 let c = content
                     .split(" ")
                     .nth(0)
@@ -82,7 +88,7 @@ impl<T: Client> Bot<T> {
                         && parsed_command_name.as_ref().unwrap() == command_name
                 }
 
-                LaunchTiming::OnMessageMatch { target_content, .. } => m.content == *target_content,
+                LaunchTiming::OnMessageMatch { target_content, .. } => content == *target_content,
             });
 
             for timing in matches {

@@ -1,17 +1,17 @@
-use crate::framework::service::Message;
+use crate::framework::service::{Client};
 
-pub struct OnMessageMatch {
+pub struct OnMessageMatch<T: Client> {
     pub matches_to: String,
-    pub message: Message,
+    pub message: T::TextMessage,
 }
 
-pub struct OnCommandCall {
+pub struct OnCommandCall<T: Client> {
     pub command_name: String,
-    pub message: Message,
+    pub message: T::TextMessage,
 }
 
 pub trait LaunchArg: 'static {}
 
-impl LaunchArg for OnMessageMatch {}
+impl<T: Client> LaunchArg for OnMessageMatch<T> {}
 
-impl LaunchArg for OnCommandCall {}
+impl<T: Client> LaunchArg for OnCommandCall<T> {}

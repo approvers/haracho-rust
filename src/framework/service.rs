@@ -11,8 +11,12 @@ pub trait ServiceFactory<T: Client> {
     fn info() -> ServiceInfo<T>;
 }
 
-pub trait Controller {
-    fn send_message(&self, channel_id: u64, content: &str) -> Result<Message, String>;
+pub trait Controller<T: Client> {
+    fn send_message(
+        &self,
+        channel: &T::TextChannel,
+        content: &str,
+    ) -> Result<T::TextMessage, String>;
 }
 
 #[derive(Debug)]
@@ -22,7 +26,12 @@ pub enum ClientError {
 }
 
 pub trait Client: Sized + Debug + Send + 'static {
-    type Controller: Controller;
+    type Controller: Controller<Self>;
+    type Message: Message<Self>;
+    type TextMessage: TextMessage<Self>;
+    type Channel: Channel;
+    type TextChannel: TextChannel;
+    type VoiceChannel: VoiceChannel;
 
     fn new(_: mpsc::Sender<ClientEvent<Self>>) -> Result<Self, ClientError>;
 
@@ -32,28 +41,29 @@ pub trait Client: Sized + Debug + Send + 'static {
 pub enum LaunchTiming<T: Client> {
     OnMessageMatch {
         target_content: String,
-        generator: Box<dyn Fn(OnMessageMatch) -> Box<dyn Service<T>>>,
+        generator: Box<dyn Fn(OnMessageMatch<T>) -> Box<dyn Service<T>>>,
     },
     OnCommandCall {
         command_name: String,
-        generator: Box<dyn Fn(OnCommandCall) -> Box<dyn Service<T>>>,
+        generator: Box<dyn Fn(OnCommandCall<T>) -> Box<dyn Service<T>>>,
     },
 }
 
 #[derive(PartialEq, Eq, Hash, Debug)]
 pub enum ClientEvent<T: Client> {
     OnReady(T::Controller),
-    OnMessage(Message),
+    OnMessage(T::TextMessage),
 }
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
-pub struct Message {
-    pub content: String,
-    pub id: u64,
-    pub channel: Channel,
+pub trait Message<T: Client>: Debug + Clone {}
+
+pub trait TextMessage<T: Client>: Message<T> {
+    fn content(&self) -> &str;
+    fn channel(&self) -> T::TextChannel;
 }
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
-pub struct Channel {
-    pub id: u64,
-}
+pub trait Channel: Debug + Copy + Clone {}
+
+pub trait TextChannel: Channel {}
+
+pub trait VoiceChannel: Channel {}

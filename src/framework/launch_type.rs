@@ -14,7 +14,7 @@ pub trait LaunchType<T: Client>: Sized + 'static {
 }
 
 impl<T: Client> LaunchType<T> for LaunchOnMessageMatch {
-    type Arg = OnMessageMatch;
+    type Arg = OnMessageMatch<T>;
 
     fn build<C>(self, callback: C) -> LaunchTiming<T>
     where
@@ -28,7 +28,7 @@ impl<T: Client> LaunchType<T> for LaunchOnMessageMatch {
 }
 
 impl<T: Client> LaunchType<T> for LaunchOnCommandCall {
-    type Arg = OnCommandCall;
+    type Arg = OnCommandCall<T>;
 
     fn build<C>(self, callback: C) -> LaunchTiming<T>
     where

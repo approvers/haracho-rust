@@ -1,8 +1,9 @@
 use super::SerenityHandler;
 
-use crate::framework::service::{Channel, Client, ClientError, ClientEvent, Controller, Message};
+use super::structs;
+use crate::framework::service::{Client, ClientError, ClientEvent, Controller};
 use serenity::http::Http;
-use serenity::model::channel::Message as SerenityMessage;
+
 use serenity::model::id::ChannelId;
 use serenity::Client as SerenityClient;
 use std::env;
@@ -19,6 +20,11 @@ pub struct DiscordClient {
 
 impl Client for DiscordClient {
     type Controller = DiscordController;
+    type Message = structs::Message;
+    type TextMessage = structs::TextMessage;
+    type Channel = structs::Channel;
+    type TextChannel = structs::TextChannel;
+    type VoiceChannel = structs::VoiceChannel;
 
     fn new(channel: mpsc::Sender<ClientEvent<Self>>) -> Result<Self, ClientError> {
         let token = env::var("DISCORD_TOKEN")
@@ -55,21 +61,15 @@ impl DiscordController {
     }
 }
 
-impl Controller for DiscordController {
-    fn send_message(&self, channel_id: u64, content: &str) -> Result<Message, String> {
-        ChannelId(channel_id)
+impl Controller<DiscordClient> for DiscordController {
+    fn send_message(
+        &self,
+        channel: &structs::TextChannel,
+        content: &str,
+    ) -> Result<structs::TextMessage, String> {
+        ChannelId(channel.id)
             .say(&self.http, content)
             .map(|m| m.into())
             .map_err(|e| e.to_string())
-    }
-}
-
-impl From<SerenityMessage> for Message {
-    fn from(m: SerenityMessage) -> Self {
-        Message {
-            content: m.content,
-            id: m.id.0,
-            channel: Channel { id: m.channel_id.0 },
-        }
     }
 }

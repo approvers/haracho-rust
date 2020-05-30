@@ -1,3 +1,4 @@
+use crate::client::discord::structs::TextMessage;
 use crate::client::discord::{DiscordClient, DiscordController};
 use crate::framework::service::ClientEvent;
 use serenity::client::EventHandler as SerenityEventHandler;
@@ -23,7 +24,7 @@ impl SerenityHandler {
 
 impl SerenityEventHandler for SerenityHandler {
     fn message(&self, _ctx: Context, msg: SMessage) {
-        let event = ClientEvent::OnMessage(msg.into());
+        let event = ClientEvent::OnMessage(TextMessage::from(msg));
 
         self.send_event(event)
     }
