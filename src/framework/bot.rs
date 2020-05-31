@@ -1,6 +1,7 @@
 use crate::framework::service::{Client, ClientEvent, LaunchTiming, ServiceFactory};
 use crate::framework::service_info::ServiceInfo;
 use crate::framework::TextMessage;
+use log::info;
 use std::{sync::mpsc, thread};
 
 type ServiceStore<T> = Vec<ServiceInfo<T>>;
@@ -39,7 +40,7 @@ impl<T: Client> Bot<T> {
         for event in channel {
             match event {
                 ClientEvent::OnReady(ctx) => {
-                    println!("Bot is ready!");
+                    info!("Bot is ready!");
                     context = Some(ctx);
                 }
 

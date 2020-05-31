@@ -1,5 +1,5 @@
-use crate::framework::launch_arg::{OnCommandCall};
-use crate::framework::launch_type::{LaunchOnCommandCall};
+use crate::framework::launch_arg::OnCommandCall;
+use crate::framework::launch_type::LaunchOnCommandCall;
 use crate::framework::service::{Client, Controller, Service, ServiceFactory};
 use crate::framework::service_info::{ServiceInfo, ServiceInfoBuilder};
 use crate::framework::TextMessage;

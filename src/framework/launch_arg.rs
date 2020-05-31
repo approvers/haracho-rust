@@ -1,4 +1,4 @@
-use crate::framework::service::{Client};
+use crate::framework::service::Client;
 
 pub struct OnMessageMatch<T: Client> {
     pub matches_to: String,

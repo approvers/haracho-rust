@@ -7,6 +7,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serenity = { version = "*", default-features = true }
+serenity = "0.8.6"
 log = "0.4.8"
-regex = "1.3.7"
+simple_logger = "1.6.0"
