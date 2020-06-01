@@ -9,4 +9,4 @@ edition = "2018"
 [dependencies]
 serenity = "0.8.6"
 log = "0.4.8"
-simple_logger = "1.6.0"
+simple_logger = { version = "1.6.0", features = ["colored"] }

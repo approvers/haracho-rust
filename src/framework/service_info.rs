@@ -18,7 +18,6 @@ pub struct ServiceInfoBuilder<'a, TClient: Client> {
 
     args_descriptions: Option<&'a [&'a str]>,
 }
-
 pub struct PartiallyTimedServiceInfoBuilder<
     'a,
     TClient: Client,

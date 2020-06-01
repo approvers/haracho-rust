@@ -1,6 +1,7 @@
+use crate::framework::launch_arg;
+use crate::framework::service::TextMessage;
 use crate::framework::service::{Client, ClientEvent, LaunchTiming, ServiceFactory};
 use crate::framework::service_info::ServiceInfo;
-use crate::framework::TextMessage;
 use log::info;
 use std::{sync::mpsc, thread};
 
@@ -93,13 +94,12 @@ impl<T: Client> Bot<T> {
             });
 
             for timing in matches {
-                use super::launch_arg::*;
                 match timing {
                     LaunchTiming::OnCommandCall {
                         command_name,
                         generator,
                     } => {
-                        let arg = OnCommandCall {
+                        let arg = launch_arg::OnCommandCall {
                             command_name: command_name.clone(),
                             message: m.clone(),
                         };
@@ -111,7 +111,7 @@ impl<T: Client> Bot<T> {
                         target_content,
                         generator,
                     } => {
-                        let arg = OnMessageMatch {
+                        let arg = launch_arg::OnMessageMatch {
                             matches_to: target_content.clone(),
                             message: m.clone(),
                         };

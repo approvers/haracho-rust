@@ -1,6 +1,5 @@
-use crate::client::discord::DiscordClient;
-use crate::framework;
-use crate::framework::Client;
+use crate::clients::discord::DiscordClient;
+use crate::framework::service;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Message;
@@ -26,9 +25,9 @@ pub struct VoiceChannel {
     pub(super) id: u64,
 }
 
-impl framework::Message<DiscordClient> for Message {}
+impl service::Message<DiscordClient> for Message {}
 
-impl framework::Message<DiscordClient> for TextMessage {}
+impl service::Message<DiscordClient> for TextMessage {}
 impl From<serenity::model::channel::Message> for TextMessage {
     fn from(m: serenity::model::channel::Message) -> Self {
         Self {
@@ -38,22 +37,22 @@ impl From<serenity::model::channel::Message> for TextMessage {
     }
 }
 
-impl framework::TextMessage<DiscordClient> for TextMessage {
+impl service::TextMessage<DiscordClient> for TextMessage {
     fn content(&self) -> &str {
         &self.content
     }
 
-    fn channel(&self) -> <DiscordClient as Client>::TextChannel {
+    fn channel(&self) -> <DiscordClient as service::Client>::TextChannel {
         self.channel
     }
 }
 
-impl framework::Channel for Channel {}
+impl service::Channel for Channel {}
 
-impl framework::Channel for TextChannel {}
+impl service::Channel for TextChannel {}
 
-impl framework::TextChannel for TextChannel {}
+impl service::TextChannel for TextChannel {}
 
-impl framework::Channel for VoiceChannel {}
+impl service::Channel for VoiceChannel {}
 
-impl framework::VoiceChannel for VoiceChannel {}
+impl service::VoiceChannel for VoiceChannel {}

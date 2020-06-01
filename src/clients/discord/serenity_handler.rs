@@ -1,5 +1,5 @@
-use crate::client::discord::structs::TextMessage;
-use crate::client::discord::{DiscordClient, DiscordController};
+use crate::clients::discord::structs::TextMessage;
+use crate::clients::discord::{DiscordClient, DiscordController};
 use crate::framework::service::ClientEvent;
 use serenity::client::EventHandler as SerenityEventHandler;
 use serenity::model::gateway::Ready;

@@ -1,10 +1,10 @@
 #![allow(dead_code)]
-mod client;
-mod command;
+mod clients;
 mod framework;
+mod services;
 
-use crate::command::ping::PingServiceFactory;
-use client::discord::DiscordClient;
+use crate::services::ping::PingServiceFactory;
+use clients::discord::DiscordClient;
 
 use crate::framework::bot::Bot;
 

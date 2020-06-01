@@ -4,7 +4,7 @@ use std::fmt::Debug;
 use std::sync::mpsc;
 
 pub trait Service<T: Client>: Debug {
-    fn launch(&mut self, _: &T::Controller) -> Result<(), String>;
+    fn launch(&self, _: &T::Controller) -> Result<(), String>;
 }
 
 pub trait ServiceFactory<T: Client> {
