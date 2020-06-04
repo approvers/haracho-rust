@@ -68,7 +68,7 @@ impl<T: Client> Bot<T> {
         }
 
         let parsed_command_name = {
-            if content.starts_with(prefix) {
+            if content.split(" ").nth(0).unwrap().starts_with(prefix) {
                 let c = content
                     .split(" ")
                     .nth(0)

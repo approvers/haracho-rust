@@ -1,20 +1,25 @@
-use crate::framework::launch_type::LaunchOnCommandCall;
 use crate::framework::service::TextMessage;
 use crate::framework::service::{Client, Controller, Service, ServiceFactory};
 use crate::framework::service_info::{ServiceInfo, ServiceInfoBuilder};
+use crate::framework::{launch_arg, launch_type};
 
 pub struct PingServiceFactory;
 
 impl<T: Client> ServiceFactory<T> for PingServiceFactory {
     fn info() -> ServiceInfo<T> {
-        ServiceInfoBuilder::<T>::new()
-            .name("PingService")
-            .description("!ping コマンドに反応して pong と返します。Botのテスト用です。")
-            .timing(LaunchOnCommandCall("ping".into()))
-            .callback(|arg| PingService {
+        let timing = launch_type::OnCommandCall::new("ping")
+            .callback(|arg: launch_arg::OnCommandCall<T>| PingService {
                 channel: arg.message.channel(),
             })
             .build()
+            .unwrap();
+
+        ServiceInfoBuilder::<T>::new()
+            .name("PingService")
+            .description("!ping コマンドに反応して pong と返します。Botのテスト用です。")
+            .timing(timing)
+            .build()
+            .unwrap()
     }
 }
 

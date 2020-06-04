@@ -1,5 +1,5 @@
 use crate::framework::launch_arg::{OnCommandCall, OnMessageMatch};
-use crate::framework::service_info::ServiceInfo;
+use crate::framework::service_info::{ArgEntry, ServiceInfo};
 use std::fmt::Debug;
 use std::sync::mpsc;
 
@@ -41,10 +41,12 @@ pub trait Client: Sized + Debug + Send + 'static {
 pub enum LaunchTiming<T: Client> {
     OnMessageMatch {
         target_content: String,
+        args: Option<Vec<ArgEntry>>,
         generator: Box<dyn Fn(OnMessageMatch<T>) -> Box<dyn Service<T>>>,
     },
     OnCommandCall {
         command_name: String,
+        args: Option<Vec<ArgEntry>>,
         generator: Box<dyn Fn(OnCommandCall<T>) -> Box<dyn Service<T>>>,
     },
 }

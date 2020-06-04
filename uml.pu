@@ -1,0 +1,67 @@
+@startuml
+
+Client -> Bot: イベント発火
+
+Bot -> ServiceFactory: イベントデータを渡す
+ServiceFactory -> Bot: Serviceインスタンスを返す
+
+Bot -> Service: Controllerインスタンスを渡して処理開始
+Service -> Controller: リクエスト処理\n(ここでChannelを取得するために\n何を渡せばいい?)
+Controller -> Client: 処理移譲
+Client -> Controller: 結果返却
+Controller -> Service: 結果返却
+
+
+
+' interface ServiceFactory {
+'     ServiceInfo info()
+' }
+
+' interface Service {
+'     Result<..> launch(&self, controller)
+' }
+
+' interface Controller {
+'     Result<..> send_text_message(&self,Channel c, String content)
+' }
+
+' interface TextMessage {
+'     String content()
+'     TextChannel channel()
+' }
+
+' interface TextChannel {}
+' interface Client{
+'     DiscordとかConsoleとか
+' }
+
+
+
+' Bot --> ServiceFactory: イベントデータを渡す
+' ServiceFactory --> Bot: Serviceインスタンス作成
+
+' Bot --> Service: Controllerを渡して、実際の処理実行
+' Service --> Controller: 命令
+' Controller --> Service: データを返す
+' Controller --> Client: 命令
+' Client --> Controller: データを返す
+
+
+' class ServiceInfo {
+'     String name
+'     String description
+'     String[] args_description
+'     LaunchTiming[] timings
+' }
+
+' class LaunchTiming {
+'     LaunchType type
+'     (LaunchArg) -> Service generator
+' }
+
+' enum LaunchType {
+'     OnCommandCall
+'     OnMessageMatch
+' }
+
+@enduml
