@@ -1,6 +1,6 @@
 use crate::framework::launch_arg;
 use crate::framework::service::TextMessage;
-use crate::framework::service::{Client, ClientEvent, LaunchTiming, ServiceFactory};
+use crate::framework::service::{Client, ClientEvent, LaunchTiming, Service, ServiceFactory};
 use crate::framework::service_info::ServiceInfo;
 use log::info;
 use std::{sync::mpsc, thread};
@@ -12,6 +12,7 @@ pub struct Bot<T: Client> {
     prefix: &'static str,
     channel: mpsc::Receiver<ClientEvent<T>>,
     services: ServiceStore<T>,
+    history: Vec<Box<dyn Service<T>>>,
 }
 
 impl<T: Client> Bot<T> {
@@ -22,6 +23,7 @@ impl<T: Client> Bot<T> {
             prefix,
             channel: rx,
             services: vec![],
+            history: vec![],
         }
     }
 
@@ -46,7 +48,7 @@ impl<T: Client> Bot<T> {
                 }
 
                 ClientEvent::OnMessage(message) => {
-                    println!("{:?}", message);
+                    info!("{:?}", message);
 
                     let ctx = context.as_ref().expect("Event was called before ready");
 

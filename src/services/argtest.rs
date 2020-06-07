@@ -17,7 +17,7 @@ impl<T: Client> ServiceFactory<T> for ArgtestFactory {
             .optional_arg(
                 "カラーコード",
                 "役職のカラーコードを指定できます",
-                ArgType::Regex(regex),
+                ArgType::RegexMatch(regex),
             )
             .callback(|arg: launch_arg::OnCommandCall<T>| ArgTest {
                 channel: arg.message.channel(),

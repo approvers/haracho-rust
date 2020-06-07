@@ -27,6 +27,7 @@ pub enum ClientError {
 
 pub trait Client: Sized + Debug + Send + 'static {
     type Controller: Controller<Self>;
+    type User: User;
     type Message: Message<Self>;
     type TextMessage: TextMessage<Self>;
     type Channel: Channel;
@@ -64,8 +65,10 @@ pub trait TextMessage<T: Client>: Message<T> {
     fn channel(&self) -> T::TextChannel;
 }
 
-pub trait Channel: Debug + Copy + Clone {}
+pub trait Channel: Debug + Clone {}
 
 pub trait TextChannel: Channel {}
 
 pub trait VoiceChannel: Channel {}
+
+pub trait User: Debug + Clone {}

@@ -1,5 +1,6 @@
 use crate::framework::launch_arg::LaunchArg;
 use crate::framework::service::{Client, LaunchTiming, Service};
+use crate::framework::service::{TextChannel, VoiceChannel};
 use log::info;
 use regex::Regex;
 use std::marker::PhantomData;
@@ -12,8 +13,19 @@ pub enum ArgType {
     User,
     TextChannel,
     VoiceChannel,
-    Regex(Regex),
+    RegexMatch(Regex),
     Custom(Box<dyn Fn(String) -> bool + 'static>),
+}
+
+pub enum ArgResult<TClient: Client> {
+    String(String),
+    Int(i128),
+    Double(f64),
+    User(TClient::User),
+    TextChannel(TClient::TextChannel),
+    VoiceChannel(TClient::VoiceChannel),
+    RegexMatch(Regex, String),
+    Custom(String),
 }
 
 pub struct ArgEntry {
