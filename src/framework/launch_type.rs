@@ -4,6 +4,19 @@ use crate::framework::service_info::{ArgEntry, ArgType};
 use std::marker::PhantomData;
 use std::str::FromStr;
 
+type NoArgBuilder<TClient, TLaunchType> =
+    LaunchTimingBuilder<TLaunchType, Option<Box<dyn Fn() -> Box<dyn Service<TClient>>>>, Empty>;
+
+type WithArgBuilder<TClient, TLaunchType: LaunchTypeWithArg<TClient>> = LaunchTimingBuilder<
+    TLaunchType,
+    Option<Box<dyn Fn(TLaunchType::Arg) -> Box<dyn Service<TClient>>>>,
+    Option<Vec<ArgEntry>>,
+>;
+
+trait LaunchType<T: Client>: Sized + 'static {
+    fn build(self, callback: impl Fn() -> Box<dyn Service<T>> + 'static) -> LaunchTiming<T>;
+}
+
 trait LaunchTypeWithArg<T: Client>: Sized + 'static {
     type Arg: launch_arg::LaunchArg;
 
@@ -17,12 +30,12 @@ trait LaunchTypeWithArg<T: Client>: Sized + 'static {
 pub struct OnMessageMatch(String);
 
 impl OnMessageMatch {
-    pub fn new<TClient, S>(target_content: S) -> LaunchArgsBuilder<TClient, Self>
+    pub fn new<TClient, S>(target_content: S) -> WithArgBuilder<TClient, Self>
     where
         TClient: Client,
         S: Into<String>,
     {
-        LaunchArgsBuilder::new(OnMessageMatch(target_content.into()))
+        WithArgBuilder::new(OnMessageMatch(target_content.into()))
     }
 }
 
@@ -45,12 +58,12 @@ impl<T: Client> LaunchTypeWithArg<T> for OnMessageMatch {
 pub struct OnCommandCall(String);
 
 impl OnCommandCall {
-    pub fn new<TClient, S>(command_name: S) -> LaunchArgsBuilder<TClient, Self>
+    pub fn new<TClient, S>(command_name: S) -> WithArgBuilder<TClient, Self>
     where
         TClient: Client,
         S: Into<String>,
     {
-        LaunchArgsBuilder::new(Self(command_name.into()))
+        WithArgBuilder::new(Self(command_name.into()))
     }
 }
 
@@ -69,18 +82,63 @@ impl<T: Client> LaunchTypeWithArg<T> for OnCommandCall {
         }
     }
 }
+@kawason0708
 
 #[derive(Debug)]
 pub struct BuildLaunchTimingError(pub String);
 
-pub struct LaunchArgsBuilder<TClient: Client, TLaunchType: LaunchTypeWithArg<TClient>> {
+struct Empty;
+
+struct LaunchTimingBuilder<TLaunchType, TCallback, TArgs> {
     internal: TLaunchType,
-    args: Option<Vec<ArgEntry>>,
-    callback: Option<Box<dyn Fn(TLaunchType::Arg) -> Box<dyn Service<TClient>>>>,
+    callback: TCallback,
+    args: TArgs,
 }
 
-impl<TClient: Client, TLaunchType: LaunchTypeWithArg<TClient>>
-    LaunchArgsBuilder<TClient, TLaunchType>
+impl<TClient, TLaunchType>
+    LaunchTimingBuilder<TLaunchType, Option<Box<dyn Fn() -> Box<dyn Service<TClient>>>>, Empty>
+where
+    TClient: Client,
+    TLaunchType: LaunchType<TClient>,
+{
+    pub fn new(target: TLaunchType) -> Self {
+        Self {
+            internal: target,
+            callback: None,
+            args: Empty,
+        }
+    }
+
+    pub fn callback<TService, TCallback>(mut self, callback: TCallback) -> Self
+    where
+        TService: Service<TClient> + 'static,
+        TCallback: Fn() -> TService + 'static,
+    {
+        let boxed_callback = || Box::new(callback()) as Box<dyn Service<TClient>>;
+
+        self.callback = Some(Box::new(boxed_callback));
+        self
+    }
+
+    pub fn build(self) -> Result<LaunchTiming<TClient>, BuildLaunchTimingError> {
+        let callback = self.callback.ok_or(BuildLaunchTimingError(
+            "callbackが渡されていません。".into(),
+        ))?;
+        let result = self.internal.build(callback);
+
+        Ok(result)
+    }
+}
+
+impl<TClient, TLaunchType>
+    LaunchTimingBuilder<
+        TLaunchType,
+        Option<Box<dyn Fn(TLaunchType::Arg) -> Box<dyn Service<TClient>>>>,
+        Option<Vec<ArgEntry>>,
+    >
+where
+    TClient: Client,
+    TLaunchType: LaunchTypeWithArg<TClient>,
 {
     pub fn new(target: TLaunchType) -> Self {
         Self {

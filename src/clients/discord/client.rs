@@ -25,6 +25,7 @@ impl Client for DiscordClient {
     type Channel = structs::Channel;
     type TextChannel = structs::TextChannel;
     type VoiceChannel = structs::VoiceChannel;
+    type User = structs::User;
 
     fn new(channel: mpsc::Sender<ClientEvent<Self>>) -> Result<Self, ClientError> {
         let token = env::var("DISCORD_TOKEN")

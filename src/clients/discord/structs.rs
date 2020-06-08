@@ -25,6 +25,11 @@ pub struct VoiceChannel {
     pub(super) id: u64,
 }
 
+#[derive(Debug, Clone)]
+pub struct User {
+    pub(super) id: u64,
+}
+
 impl service::Message<DiscordClient> for Message {}
 
 impl service::Message<DiscordClient> for TextMessage {}
@@ -56,3 +61,5 @@ impl service::TextChannel for TextChannel {}
 impl service::Channel for VoiceChannel {}
 
 impl service::VoiceChannel for VoiceChannel {}
+
+impl service::User for User {}
