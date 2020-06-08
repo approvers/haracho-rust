@@ -82,7 +82,6 @@ impl<T: Client> LaunchTypeWithArg<T> for OnCommandCall {
         }
     }
 }
-@kawason0708
 
 #[derive(Debug)]
 pub struct BuildLaunchTimingError(pub String);
