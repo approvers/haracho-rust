@@ -1,97 +1,102 @@
-use super::LaunchTiming;
+use crate::framework::launch_arg::LaunchArg;
+use crate::framework::service::{Client, LaunchTiming, Service};
+use crate::framework::service::{TextChannel, VoiceChannel};
 use log::info;
+use regex::Regex;
+use std::marker::PhantomData;
+use std::str::FromStr;
 
-#[derive(Hash, PartialEq, Eq)]
-pub struct ServiceInfo {
+pub enum ArgType {
+    String,
+    Int,
+    Double,
+    User,
+    TextChannel,
+    VoiceChannel,
+    RegexMatch(Regex),
+    Custom(Box<dyn Fn(String) -> bool + 'static>),
+}
+
+pub enum ArgResult<TClient: Client> {
+    String(String),
+    Int(i128),
+    Double(f64),
+    User(TClient::User),
+    TextChannel(TClient::TextChannel),
+    VoiceChannel(TClient::VoiceChannel),
+    RegexMatch(Regex, String),
+    Custom(String),
+}
+
+pub struct ArgEntry {
     pub name: String,
     pub description: String,
-    pub initial_timings: Vec<LaunchTiming>,
-
-    pub args_description: Option<Vec<String>>,
+    pub arg_type: ArgType,
+    pub is_optional: bool,
 }
 
-pub struct ServiceInfoBuilder<'a> {
-    name: Option<&'a str>,
-    description: Option<&'a str>,
-    initial_timings: Vec<LaunchTiming>,
-
-    args_descriptions: Option<&'a [&'a str]>,
+pub struct ServiceInfo<TClient: Client> {
+    pub name: String,
+    pub description: String,
+    pub initial_timings: Vec<LaunchTiming<TClient>>,
 }
 
-impl<'instance> ServiceInfoBuilder<'instance> {
+pub struct ServiceInfoBuilder<TClient: Client> {
+    name: Option<String>,
+    description: Option<String>,
+    initial_timings: Option<Vec<LaunchTiming<TClient>>>,
+}
+
+#[derive(Debug)]
+pub struct BuildServiceInfoError(pub String);
+
+impl<TClient: Client> ServiceInfoBuilder<TClient> {
     pub fn new() -> Self {
         ServiceInfoBuilder {
             name: None,
             description: None,
-            initial_timings: Vec::new(),
-
-            args_descriptions: None,
+            initial_timings: None,
         }
     }
 
-    pub fn name<'a: 'instance>(mut self, name: &'a str) -> Self {
-        self.name = Some(name);
+    pub fn name<A: Into<String>>(mut self, name: A) -> Self {
+        self.name = Some(name.into());
         self
     }
 
-    pub fn description<'a: 'instance>(mut self, description: &'a str) -> Self {
-        self.description = Some(description);
+    pub fn description<A: Into<String>>(mut self, description: A) -> Self {
+        self.description = Some(description.into());
         self
     }
 
-    pub fn args_descriptions<'a: 'instance>(mut self, args_desc: &'a [&str]) -> Self {
-        self.args_descriptions = Some(args_desc);
+    pub fn timing(mut self, timing: LaunchTiming<TClient>) -> Self {
+        if self.initial_timings.is_none() {
+            self.initial_timings = Some(vec![]);
+        }
+
+        self.initial_timings.as_mut().unwrap().push(timing);
         self
     }
 
-    pub fn timing(mut self, new_timing: LaunchTiming) -> Self {
-        self.initial_timings.push(new_timing);
-        self
-    }
+    pub fn build(self) -> Result<ServiceInfo<TClient>, BuildServiceInfoError> {
+        let name = self
+            .name
+            .ok_or(BuildServiceInfoError("名前がありません".into()))?;
 
-    pub fn build(self) -> ServiceInfo {
-        if self.name.is_none() {
-            panic!("Building service info failed: name is empty.");
-        }
+        let description = self
+            .description
+            .ok_or(BuildServiceInfoError("説明がありません".into()))?;
 
-        if self.description.is_none() {
-            panic!("Building service info failed: description is empty.");
-        }
+        let timings = self.initial_timings.ok_or(BuildServiceInfoError(
+            "起動タイミングが指定されていません：このサービスを起動する方法がありません".into(),
+        ))?;
 
-        if self.args_descriptions.is_none() {
-            info!(
-                "\"{}\" service's args descriptions is empty.",
-                self.name.unwrap()
-            );
-        }
-
-        if self.initial_timings.is_empty() {
-            panic!(
-                "\"{}\" service's timing is empty: There is no way to call this service!",
-                self.name.unwrap()
-            )
-        }
-
-        let args_desc = {
-            if self.args_descriptions.is_some() {
-                Some(
-                    self.args_descriptions
-                        .unwrap()
-                        .iter()
-                        .map(|x| String::from(*x))
-                        .collect(),
-                )
-            } else {
-                None
-            }
+        let result = ServiceInfo {
+            name,
+            description,
+            initial_timings: timings,
         };
 
-        ServiceInfo {
-            name: String::from(self.name.unwrap()),
-            description: String::from(self.description.unwrap()),
-            initial_timings: self.initial_timings,
-
-            args_description: args_desc,
-        }
+        Ok(result)
     }
 }

@@ -1,54 +1,74 @@
-use crate::framework::ServiceInfo;
+use crate::framework::launch_arg::{OnCommandCall, OnMessageMatch};
+use crate::framework::service_info::{ArgEntry, ServiceInfo};
 use std::fmt::Debug;
 use std::sync::mpsc;
 
 pub trait Service<T: Client>: Debug {
-    fn launch(&mut self, _: &T::Context) -> Result<(), String>;
+    fn launch(&self, _: &T::Controller) -> Result<(), String>;
 }
 
 pub trait ServiceFactory<T: Client> {
-    fn info() -> ServiceInfo;
-    fn make(_: LaunchArg) -> Box<dyn Service<T>>;
+    fn info() -> ServiceInfo<T>;
 }
 
-pub trait Context {
-    fn send_message(&self, channel_id: u64, content: &str) -> Result<Message, String>;
+pub trait Controller<T: Client> {
+    fn send_message(
+        &self,
+        channel: &T::TextChannel,
+        content: &str,
+    ) -> Result<T::TextMessage, String>;
+}
+
+#[derive(Debug)]
+pub enum ClientError {
+    InitializeClientError(String),
+    StartingClientError(String),
 }
 
 pub trait Client: Sized + Debug + Send + 'static {
-    type Context: Context;
+    type Controller: Controller<Self>;
+    type User: User;
+    type Message: Message<Self>;
+    type TextMessage: TextMessage<Self>;
+    type Channel: Channel;
+    type TextChannel: TextChannel;
+    type VoiceChannel: VoiceChannel;
 
-    fn new(_: mpsc::Sender<ClientEvent<Self>>) -> Self;
+    fn new(_: mpsc::Sender<ClientEvent<Self>>) -> Result<Self, ClientError>;
 
-    fn start(&mut self);
+    fn start(&mut self) -> Result<(), ClientError>;
 }
 
-#[derive(PartialEq, Eq, Hash, Debug)]
-pub enum LaunchTiming {
-    OnMessageMatch(&'static str),
-    OnCommandCall(&'static str),
-}
-
-#[derive(PartialEq, Eq, Hash, Debug)]
-pub enum LaunchArg {
-    OnMessageMatch(Message),
-    OnCommandCall(Message),
+pub enum LaunchTiming<T: Client> {
+    OnMessageMatch {
+        target_content: String,
+        args: Option<Vec<ArgEntry>>,
+        generator: Box<dyn Fn(OnMessageMatch<T>) -> Box<dyn Service<T>>>,
+    },
+    OnCommandCall {
+        command_name: String,
+        args: Option<Vec<ArgEntry>>,
+        generator: Box<dyn Fn(OnCommandCall<T>) -> Box<dyn Service<T>>>,
+    },
 }
 
 #[derive(PartialEq, Eq, Hash, Debug)]
 pub enum ClientEvent<T: Client> {
-    OnReady(T::Context),
-    OnMessage(Message),
+    OnReady(T::Controller),
+    OnMessage(T::TextMessage),
 }
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
-pub struct Message {
-    pub content: String,
-    pub id: u64,
-    pub channel: Channel,
+pub trait Message<T: Client>: Debug + Clone {}
+
+pub trait TextMessage<T: Client>: Message<T> {
+    fn content(&self) -> &str;
+    fn channel(&self) -> T::TextChannel;
 }
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
-pub struct Channel {
-    pub id: u64,
-}
+pub trait Channel: Debug + Clone {}
+
+pub trait TextChannel: Channel {}
+
+pub trait VoiceChannel: Channel {}
+
+pub trait User: Debug + Clone {}
